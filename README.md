@@ -52,6 +52,16 @@ The AI mapper only calls Gemini when a carrier sheet has columns not already cov
 
 ## Usage
 
+### Option A: Web UI (recommended for demos)
+
+```bash
+streamlit run app_ui.py
+```
+
+Opens a browser interface at `http://localhost:8501`. Upload the Excel file, preview column mappings, run the pipeline, and download the output CSV -- all in one page.
+
+### Option B: CLI
+
 ```bash
 # Basic run
 python main.py --file data/sample_carriers.xlsx
