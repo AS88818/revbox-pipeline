@@ -1,119 +1,78 @@
 # Rev-Box Carrier Data Parser
 
-ETL pipeline that ingests insurance carrier data from Excel workbooks, normalises messy column names via AI-assisted mapping, validates records with Pydantic, and loads them into a structured SQLite database.
+A pipeline that takes messy carrier Excel data, figures out what each column means, cleans it, and loads it into a structured SQLite database. Built to handle the reality that every carrier sends data differently.
 
 ---
 
-## Architecture
+## How it works
 
 ```
 Excel Workbook
      |
- [EXTRACT]  -- reads all carrier sheets, skips reference/lookup tabs
+ [EXTRACT]   reads carrier sheets, skips reference/lookup tabs
      |
- [TRANSFORM] -- maps columns (YAML config + Gemini fallback), coerces types, validates
+ [TRANSFORM] maps columns, normalises dates/currency, validates each row
      |
-  [LOAD]    -- deduplicates, inserts to SQLite, logs every run
+  [LOAD]     deduplicates and inserts to SQLite, logs every run
      |
-  SQLite DB  +  CSV Export (optional)
+  SQLite DB  +  optional CSV export
 ```
 
-### Key design decisions
-
-| Decision | Rationale |
-|----------|-----------|
-| YAML-first column mapping | Zero API calls for known carriers; Gemini only fires on unmapped columns |
-| Pydantic validation layer | Catches bad data before it touches the DB; validation errors are logged not crashed |
-| Raw record audit table | Every source row is preserved before transformation |
-| IngestionRun table | Full per-run audit trail: rows extracted, loaded, duped, skipped |
-| Deduplication on `policy_id + carrier_id` | Idempotent -- re-running the same file does not create duplicates |
+The column mapping step is the interesting part. Each carrier gets a YAML config file that says "their column X = our field Y". If a column shows up that isn't in the config, Gemini classifies it and saves the result back to the YAML so you don't pay for the API call twice.
 
 ---
 
 ## Setup
 
-### 1. Clone and install dependencies
-
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Set your Gemini API key
-
-Create a `.env` file in the project root:
+Create a `.env` file with your Gemini API key:
 
 ```
 GOOGLE_API_KEY=your_key_here
 ```
 
-The AI mapper only calls Gemini when a carrier sheet has columns not already covered by its YAML config. For the included sample data, all columns are pre-mapped so no API calls are made.
+The AI mapper only runs when it hits a column that isn't already in the YAML config. For the included sample data, all columns are pre-mapped so no API calls are made on first run.
 
 ---
 
 ## Usage
 
-### Option A: Web UI (recommended for demos)
+### Web UI
 
 ```bash
 streamlit run app_ui.py
 ```
 
-Opens a browser interface at `http://localhost:8501`. Upload the Excel file, preview column mappings, run the pipeline, and download the output CSV -- all in one page.
+Opens at `http://localhost:8501`. Upload a workbook, review the column mappings, override any that look wrong, run the pipeline, download the CSV.
 
-### Option B: CLI
+### CLI
 
 ```bash
-# Basic run
 python main.py --file data/sample_carriers.xlsx
 
 # With CSV export
 python main.py --file data/sample_carriers.xlsx --export-csv
 
-# Custom DB path and verbose logging
-python main.py --file data/sample_carriers.xlsx --db custom.db --log-level DEBUG
+# Verbose mode
+python main.py --file data/sample_carriers.xlsx --log-level DEBUG
 ```
 
-### Generate sample data (first time)
+### Sample data
 
 ```bash
 python generate_sample_data.py
 ```
 
-This creates `data/sample_carriers.xlsx` with 3 carrier sheets (30 + 27 + 20 rows) including intentional messiness: duplicate policy IDs, null values, mixed date formats, currency symbols, cryptic column names, and one unparseable date.
-
----
-
-## Project structure
-
-```
-Rev-Box Project/
-├── app/
-│   ├── models.py       # SQLAlchemy ORM: Carrier, Policy, RawRecord, IngestionRun
-│   ├── schemas.py      # Pydantic validation: PolicyRecord
-│   ├── db.py           # Engine/session management
-│   ├── extract.py      # Read Excel, skip reference sheets
-│   ├── transform.py    # Column mapping, type coercion, validation
-│   ├── ai_mapper.py    # Gemini-powered column classification
-│   ├── load.py         # DB insert, deduplication, run logging
-│   └── utils.py        # Logging setup, CSV export, summary printer
-├── mappings/
-│   ├── carrier_alpha.yml
-│   ├── carrier_beta.yml
-│   └── carrier_gamma.yml
-├── data/
-│   └── sample_carriers.xlsx
-├── output/             # CSV exports land here
-├── main.py             # CLI entry point
-├── generate_sample_data.py
-├── requirements.txt
-└── Dockerfile
-```
+Generates `data/sample_carriers.xlsx` with 3 messy carrier sheets (different column names, date formats, currency formats, duplicates, nulls, one bad date row).
 
 ---
 
 ## Adding a new carrier
 
-1. Create `mappings/<carrier_name>.yml` (lowercase, spaces as underscores):
+Create `mappings/<carrier_name>.yml`:
 
 ```yaml
 carrier_name: My New Carrier
@@ -128,7 +87,35 @@ column_mapping:
   Internal ID: ignore_column
 ```
 
-2. Run the pipeline. Any unmapped columns will be sent to Gemini and the result appended to the YAML automatically.
+Drop the file, run the pipeline. Any columns not in the YAML go to Gemini, and the result gets written back automatically.
+
+---
+
+## Project structure
+
+```
+Rev-Box Project/
+├── app/
+│   ├── models.py       # SQLAlchemy ORM: Carrier, Policy, RawRecord, IngestionRun
+│   ├── schemas.py      # Pydantic validation: PolicyRecord
+│   ├── db.py           # Engine and session management
+│   ├── extract.py      # Read Excel, skip reference sheets
+│   ├── transform.py    # Column mapping, type coercion, row validation
+│   ├── ai_mapper.py    # Gemini column classifier
+│   ├── load.py         # DB insert, deduplication, ingestion run logging
+│   └── utils.py        # Logging setup, CSV export, summary output
+├── mappings/
+│   ├── carrier_alpha.yml
+│   ├── carrier_beta.yml
+│   └── carrier_gamma.yml
+├── data/
+│   └── sample_carriers.xlsx
+├── output/             # CSV exports go here
+├── app_ui.py           # Streamlit UI
+├── main.py             # CLI entry point
+├── generate_sample_data.py
+└── requirements.txt
+```
 
 ---
 
@@ -137,14 +124,31 @@ column_mapping:
 | Table | Purpose |
 |-------|---------|
 | `carriers` | Carrier lookup |
-| `policies` | Normalised policy records (unique on `policy_id + carrier_id`) |
-| `raw_records` | Source row audit log (JSON) |
-| `ingestion_runs` | Per-run stats and status |
+| `policies` | Cleaned policy records (unique on `policy_id + carrier_id`) |
+| `raw_records` | Source row audit log before transformation |
+| `ingestion_runs` | Per-run stats: rows extracted, loaded, skipped, duplicated |
 | `ref_status` | Status normalisation lookup |
 | `ref_policy_type` | Policy type normalisation lookup |
 
 ---
 
-## Containerisation
+## Assumptions
 
-A Dockerfile is not included. `requirements.txt` and Python 3.11+ are all you need to run this locally. If containerisation is needed for deployment, a basic Dockerfile can be added in under 10 lines.
+- Each Excel sheet = one carrier. Sheet name is used as the carrier identifier unless the YAML config specifies otherwise.
+- The pipeline doesn't auto-detect which sheet is a reference sheet by content -- it goes by name. Sheets named `Status_Mappings`, `Lookup`, etc. are skipped. Anything else is treated as carrier data.
+- Deduplication is on `policy_id + carrier_id`. Same policy from two different carriers is allowed. Same policy from the same carrier twice is a duplicate.
+- Currency values can come in with symbols (`$`, `USD`) or commas -- all stripped before parsing. If it still can't parse, the premium is set to null and the row is kept.
+- Dates: 9 formats tried in order. If none match, effective_date is null and the row is still loaded. A warning is logged.
+- A row missing `policy_id` is dropped entirely. That's the only hard discard.
+
+---
+
+## Tradeoffs and limitations
+
+**SQLite over Postgres**: SQLite is zero-setup and fits a test project. Swapping to Postgres is one line change in `db.py`. The ORM handles the rest.
+
+**AI mapper caches to YAML**: Once Gemini classifies a column, it writes the result back to the carrier YAML. That means after first run, no more API calls for that carrier. The downside is if Gemini gets it wrong, it stays wrong until someone edits the YAML. The UI override handles this.
+
+**No schema migration**: The DB schema is created once on first run. If you need to change the schema, delete the `.db` file and rebuild. Not a problem for a v1, but worth noting for production.
+
+**Sample data is synthetic**: The real carrier Excel file wasn't available during build, so sample data was generated to cover the expected messiness. The pipeline is ready to handle the real file -- drop it in `/data` and run.
