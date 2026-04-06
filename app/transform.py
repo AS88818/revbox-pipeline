@@ -112,15 +112,24 @@ def transform_sheet(
     df: pd.DataFrame,
     sheet_name: str,
     carrier_name: str,
+    column_mapping_override: Optional[dict[str, str]] = None,
 ) -> tuple[list[PolicyRecord], list[dict], dict[str, str]]:
     """
     Transform a raw DataFrame into validated PolicyRecord objects.
 
+    Args:
+        column_mapping_override: If provided, skips YAML/AI lookup and uses this mapping directly.
+                                 Useful for UI-driven manual overrides.
+
     Returns:
         (valid_records, raw_rows_json, column_mapping)
     """
-    config = load_carrier_config(carrier_name)
-    col_mapping = get_column_mapping(df, config, carrier_name)
+    if column_mapping_override is not None:
+        col_mapping = column_mapping_override
+        logger.info(f"Using user-provided column mapping override for '{carrier_name}' / '{sheet_name}'")
+    else:
+        config = load_carrier_config(carrier_name)
+        col_mapping = get_column_mapping(df, config, carrier_name)
 
     logger.info(f"Column mapping for '{carrier_name}' / '{sheet_name}': {col_mapping}")
 
