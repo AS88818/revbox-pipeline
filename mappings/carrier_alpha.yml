@@ -1,0 +1,12 @@
+# Carrier Alpha -- uses fairly standard column names
+carrier_name: Carrier Alpha
+
+column_mapping:
+  Policy Number: policy_id
+  Insured Name: customer_name
+  Type of Policy: policy_type
+  Annual Premium: premium
+  Start Date: effective_date
+  Policy Status: status
+  Agent Code: ignore_column
+  Branch: ignore_column

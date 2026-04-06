@@ -1,0 +1,13 @@
+# Carrier Beta -- uses abbreviated/cryptic column names
+carrier_name: Carrier Beta
+
+column_mapping:
+  POL_ID: policy_id
+  CLIENT: customer_name
+  POL_TYPE: policy_type
+  PREM_USD: premium
+  EFF_DT: effective_date
+  STAT_CD: status
+  REGION_CODE: ignore_column
+  UNDERWRITER_ID: ignore_column
+  NOTES: ignore_column

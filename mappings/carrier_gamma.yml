@@ -1,0 +1,12 @@
+# Carrier Gamma -- verbose descriptive names, some in title case
+carrier_name: Carrier Gamma
+
+column_mapping:
+  Reference ID: policy_id
+  Full Name of Insured: customer_name
+  Coverage Category: policy_type
+  Total Premium Amount ($): premium
+  Coverage Effective Date: effective_date
+  Current Status: status
+  Internal Ref: ignore_column
+  Last Modified By: ignore_column
