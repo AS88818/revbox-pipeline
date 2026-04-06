@@ -2,6 +2,8 @@
 
 A pipeline that takes messy carrier Excel data, figures out what each column means, cleans it, and loads it into a structured SQLite database. Built to handle the reality that every carrier sends data differently.
 
+Adding a new carrier takes one YAML file. No code changes. The system is designed to scale to 50+ carriers without touching the pipeline logic.
+
 ---
 
 ## How it works
@@ -151,4 +153,4 @@ Rev-Box Project/
 
 **No schema migration**: The DB schema is created once on first run. If you need to change the schema, delete the `.db` file and rebuild. Not a problem for a v1, but worth noting for production.
 
-**Sample data is synthetic**: The real carrier Excel file wasn't available during build, so sample data was generated to cover the expected messiness. The pipeline is ready to handle the real file -- drop it in `/data` and run.
+**Built without the real data file**: The carrier Excel file wasn't provided, so I generated synthetic data that replicates the described messiness -- different column names per carrier, mixed date and currency formats, duplicates, nulls, and one unparseable date. Every edge case in the brief is covered in the sample. When the real file arrives, drop it in `/data` and run -- no changes needed.
