@@ -48,7 +48,11 @@ The AI mapper only runs when it hits a column that isn't already in the YAML con
 streamlit run app_ui.py
 ```
 
-Opens at `http://localhost:8501`. Upload a workbook, review the column mappings, override any that look wrong, run the pipeline, download the CSV.
+Opens at `http://localhost:8501`. Two tabs:
+
+**Run Pipeline** -- Upload a workbook, review how every column is going to be mapped (YAML-sourced mappings show green, AI-pending show orange), override anything that looks wrong, run the pipeline, download the CSV.
+
+**New Carrier Setup** -- Got a carrier that isn't in the system yet? Upload a sample file (or type the column names manually), assign each column to a schema field using dropdowns, preview the generated YAML, and save it. No code changes, no file editing. The next run picks it up automatically.
 
 ### CLI
 
@@ -74,7 +78,9 @@ Generates `data/sample_carriers.xlsx` with 3 messy carrier sheets (different col
 
 ## Adding a new carrier
 
-Create `mappings/<carrier_name>.yml`:
+**Option 1 -- UI (recommended):** Open the *New Carrier Setup* tab in the Streamlit app. Upload a sample file or enter the column headers manually, assign each one to a schema field, and click Save. Done.
+
+**Option 2 -- Manual:** Create `mappings/<carrier_name>.yml` directly:
 
 ```yaml
 carrier_name: My New Carrier
@@ -89,7 +95,7 @@ column_mapping:
   Internal ID: ignore_column
 ```
 
-Drop the file, run the pipeline. Any columns not in the YAML go to Gemini, and the result gets written back automatically.
+Either way, drop the file in your workbook and run. Any columns not covered by the YAML go to Gemini, and the result gets written back automatically so the next run doesn't call the API again.
 
 ---
 
