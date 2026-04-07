@@ -361,13 +361,22 @@ with tab_new_carrier:
         col_mappings: dict[str, str] = {}
         left_col, right_col = st.columns(2)
 
+        # Keyword hints for smarter default guessing
+        _FIELD_HINTS = {
+            "policy_id":      ["policy", "pol_id", "polid", "policyno", "policynumber", "policy_no", "policy_num", "ref", "reference"],
+            "customer_name":  ["name", "client", "insured", "holder", "customer", "member"],
+            "policy_type":    ["type", "coverage", "product", "plan", "category"],
+            "premium":        ["premium", "prem", "amount", "price", "cost", "total"],
+            "effective_date": ["date", "effective", "start", "inception", "eff", "begin"],
+            "status":         ["status", "stat", "state", "active", "flag"],
+        }
+
         for i, col in enumerate(detected_columns):
-            # Try to guess a sensible default from the column name
-            col_lower = col.lower().replace(" ", "_").replace("-", "_")
+            col_clean = col.lower().replace(" ", "").replace("_", "").replace("-", "")
             default_guess = "ignore_column"
-            for schema_field in SCHEMA_OPTIONS:
-                if schema_field.replace("_", "") in col_lower.replace("_", ""):
-                    default_guess = schema_field
+            for field, hints in _FIELD_HINTS.items():
+                if any(hint in col_clean for hint in hints):
+                    default_guess = field
                     break
 
             if default_guess not in SCHEMA_OPTIONS:
