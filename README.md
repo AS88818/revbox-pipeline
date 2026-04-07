@@ -145,7 +145,7 @@ Rev-Box Project/
 - Each Excel sheet = one carrier. Sheet name is used as the carrier identifier unless the YAML config specifies otherwise.
 - The pipeline doesn't auto-detect which sheet is a reference sheet by content -- it goes by name. Sheets named `Status_Mappings`, `Lookup`, etc. are skipped. Anything else is treated as carrier data.
 - Deduplication is on `policy_id + carrier_id`. Same policy from two different carriers is allowed. Same policy from the same carrier twice is a duplicate.
-- Currency values can come in with symbols (`$`, `USD`) or commas -- all stripped before parsing. If it still can't parse, the premium is set to null and the row is kept.
+- Currency values can come in with symbols (`$`, `USD`) or commas, all stripped before parsing. If it still can't parse, the premium is set to null and the row is kept.
 - Dates: 9 formats tried in order. If none match, effective_date is null and the row is still loaded. A warning is logged.
 - A row missing `policy_id` is dropped entirely. That's the only hard discard.
 
@@ -159,4 +159,4 @@ Rev-Box Project/
 
 **No schema migration**: The DB schema is created once on first run. If you need to change the schema, delete the `.db` file and rebuild. Not a problem for a v1, but worth noting for production.
 
-**Built without the real data file**: The carrier Excel file wasn't provided, so I generated synthetic data that replicates the described messiness -- different column names per carrier, mixed date and currency formats, duplicates, nulls, and one unparseable date. Every edge case in the brief is covered in the sample. When the real file arrives, drop it in `/data` and run -- no changes needed.
+**Built without the real data file**: The carrier Excel file wasn't provided, so I generated synthetic data that replicates the described messiness: different column names per carrier, mixed date and currency formats, duplicates, nulls, and one unparseable date. Every edge case in the brief is covered in the sample. When the real file arrives, drop it in `/data` and run, no changes needed.
